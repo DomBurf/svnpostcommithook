@@ -215,6 +215,8 @@ namespace post_commit
                         };
                         p.Start();
 
+                        System.Threading.Thread.Sleep(2000);
+
                         //read the XML from standard output stream
                         string output = p.StandardOutput.ReadToEnd();
                         p.WaitForExit();
@@ -237,6 +239,7 @@ namespace post_commit
                             WriteToInfoLog(string.Format("BugTracker.NET hook URL={0}", hookUrl));
                             string html = client.DownloadString(hookUrl);
                             WriteToInfoLog(html);
+                            System.Threading.Thread.Sleep(5000);
                         }
                     }
                 }
