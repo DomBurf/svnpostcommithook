@@ -18,5 +18,18 @@ It can be run either as an SVN post-commit hook or as a scheduled task (which ru
 
 BugTracker.NET comes supplied with a Python equivalent of this application, but I couldn't get it to work, so I wrote an alrernative in my preferred programming language (C#). I then extended the original Python functionality by adding the ability to be run as a scheduled task. It creates an error log and an information log (to tell you what it has done - useful for diagnostics if you need help getting it working).
 
+Usage
+=================
+
+The application can be run as either an SVN post commit hook event or as a scheduled task. Here's an explanation of each. 
+
+1. Copy the file post-commit.exe to your SVN repository's hook folder. SVN will then run the application and pass it two arguments.
+ - the repository name / path
+ - the revision number
+
+2. Copy the file to any desired location on your SVN server and create a scheduled task that will will execute it. You will need to pass the following arguments to it.
+ - the repository name / path
+ - empty string (by leaving the revision number empty the application will determine the last revision number by querying SVN)
+
 
 
