@@ -10,15 +10,12 @@ using System.Web;
 using System.Xml.Linq;
 
 //Author: Dominic Burford 
-//dominicburford.co.uk
-//Twitter: @DomBurf
-//Facebook: facebook.com/dominic.burford
 //Date: 20/05/2014
 
 namespace post_commit
 {
     /// <summary>
-    /// This class is used to integrate SVN with BugTracker.NET.
+    /// This application is used to integrate SVN with BugTracker.NET.
     /// It does this by intercepting the SVN POST-COMMIT hook. SVN passes two arguments to a post commit hook:
     /// - the repository name / path
     /// - the revision number
@@ -224,13 +221,13 @@ namespace post_commit
 
                         if (string.IsNullOrEmpty(output))
                         {
-                            WriteToErrorLog("No XML was returned from SVN");
+                            WriteToInfoLog("No XML was returned from SVN");
                             return 9;
                         }
                         
                         if (!output.Contains("bugid"))
                         {
-                            WriteToErrorLog("No BugTracker.NET information was found - nothing more to do");
+                            WriteToInfoLog("No BugTracker.NET information was found - nothing more to do");
                             return 10;
                         }
 
