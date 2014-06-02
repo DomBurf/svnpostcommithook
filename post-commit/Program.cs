@@ -80,6 +80,7 @@ namespace post_commit
         /// 7 = config file not found
         /// 8 = config values not set
         /// 9 = No XML was returned from SVN for the specified revision
+        /// 10 = No BugTracker.NET information was found in the XML returned from SVN
         /// </returns>
         /// <remarks>
         /// Before prodceeding you will need to populate the config file with certain values:
@@ -225,6 +226,12 @@ namespace post_commit
                         {
                             WriteToErrorLog("No XML was returned from SVN");
                             return 9;
+                        }
+                        
+                        if (!output.Contains("bugid"))
+                        {
+                            WriteToErrorLog("No BugTracker.NET information was found - nothing more to do");
+                            return 10;
                         }
 
                         output = output.Replace("\r\n", string.Empty);
