@@ -120,7 +120,7 @@ namespace post_commit
 
                 if (args.Length == 0)
                 {
-                    WriteToErrorLog("No arguments were passed to the application");
+                    WriteToInfoLog("No arguments were passed to the application");
                     return 3;
                 }
 
@@ -267,20 +267,17 @@ namespace post_commit
             return 0;
         }
 
-        static void CatchException(Exception e)
+        static void CatchException(Exception ex)
         {
-            if (e == null) return;
-            _twerr.WriteLine(e.Message);
-            _twerr.WriteLine(e.StackTrace);
+            if (ex == null) return;
+            WriteToErrorLog(ex);
         }
 
-        static void WriteToErrorLog(string message)
+        static void WriteToErrorLog(Exception ex)
         {
-            if (!string.IsNullOrEmpty(message))
-            {
-                _twerr.WriteLine("Error encountered at {0}", DateTime.Now.ToString(CultureInfo.InvariantCulture));
-                _twerr.WriteLine(message);
-            }
+            _twerr.WriteLine("Error encountered at {0}", DateTime.Now.ToString(CultureInfo.InvariantCulture));
+            _twerr.WriteLine(ex.Message);
+            _twerr.WriteLine(ex.StackTrace);
         }
 
         static void WriteToInfoLog(string message)
