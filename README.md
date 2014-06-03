@@ -27,7 +27,7 @@ The application can be run as either an SVN post commit hook event or as a sched
  - the repository name / path
  - the revision number
 
-2. To use the app as a scheduled task: Copy the file to any desired location on your SVN server and create a scheduled task that will will execute it. You will need to pass the following arguments to it.
+2. To use the app as a scheduled task: Copy the file to any desired location on your SVN server and create a scheduled task that will execute it. You will need to pass the following arguments to it.
  - the repository name / path
  - empty string (by leaving the revision number empty the application will determine the last revision number by querying SVN)
 
