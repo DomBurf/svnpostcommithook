@@ -34,17 +34,17 @@ The application can be run as either an SVN post commit hook event or as a sched
 In both cases you will need to populate the config file with the following values.
  - pathToSvn: the path to SVN.EXE
  - BtNetHookUrl: the full URL to the BugTracker.NET hook form SVN_HOOK.ASPX
- - BtUsername: the BugTracker.NET user which will perform the operation ((needs to match the user specifgied in your BugTracker.NET web.config)
+ - BtUsername: the BugTracker.NET user which will perform the operation (needs to match the user specified in your BugTracker.NET web.config)
  - BtPassword: the BugTracker.NET password of the user which will perform the operation
- - SvnrepoUrl: the URL to your SVN repository
- - lastSvnRevision: the SVN revision last processed by the app (maintained by the app can can be set to your most recent revision for new installations. can be set to 0 but this will be pointless as your previous SVN check-ins will not contain BugTracker.NET information)
+ - SvnRepoUrl: the URL to your SVN repository
+ - lastSvnRevision: the SVN revision last processed by the app (maintained by the app but can be set to your most recent revision for new installations. Can be set to 0 but this will be pointless as your previous SVN check-ins will not contain BugTracker.NET information)
 
-See my own vales for example usage.
+See my own values for example usage.
 
 Notes
 =================
 The information and error logs are called post-commit-info.log and post-commit-error.log respectively. They are created in the user's TEMP folder e.g. C:\Users\%username%\AppData\Local\Temp.
 
-When running under SVN as a post commit hook, this may (depending on your installation) be running under the NETWORK SERVICE. In which case the file will be located here C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp.
+When running under SVN as a post commit hook, this may (depending on your installation) be running under the NETWORK SERVICE. In which case the file will be located here (depending on your version of Windows) C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp.
 
 You may want to periodically clear down the information log that is created by the application. It may become large over time, especially with larger teams. I have a Windows batch file that clears it down daily.
