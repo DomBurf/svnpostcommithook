@@ -23,13 +23,21 @@ Usage
 
 The application can be run as either an SVN post commit hook event or as a scheduled task. Here's an explanation of each. 
 
-1. Copy the file post-commit.exe to your SVN repository's hook folder. SVN will then run the application and pass it two arguments.
+1. To use the app as a scheduled task: Copy the file post-commit.exe to your SVN repository's hook folder. SVN will then run the application and pass it two arguments.
  - the repository name / path
  - the revision number
 
-2. Copy the file to any desired location on your SVN server and create a scheduled task that will will execute it. You will need to pass the following arguments to it.
+2. To use the app as an SVN hook: Copy the file to any desired location on your SVN server and create a scheduled task that will will execute it. You will need to pass the following arguments to it.
  - the repository name / path
  - empty string (by leaving the revision number empty the application will determine the last revision number by querying SVN)
 
+In both cases you will need to populate the config file with the following values.
+ - pathToSvn: the path to SVN.EXE
+ - BtNetHookUrl: the full URL to the BugTracker.NET hook form SVN_HOOK.ASPX
+ - BtUsername: the BugTracker.NET user which will perform the operation ((needs to match the user specifgied in your BugTracker.NET web.config)
+ - BtPassword: the BugTracker.NET password of the user which will perform the operation
+ - SvnrepoUrl: the URL to your SVN repository
+ - lastSvnRevision: the SVN revision last processed by the app (maintained by the app can can be set to your most recent revision for new installations. can be set to 0 but this will be pointless as your previous SVN check-ins will not contain BugTracker.NET information)
 
+See my own vales for example usage.
 
