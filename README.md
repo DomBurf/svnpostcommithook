@@ -41,3 +41,10 @@ In both cases you will need to populate the config file with the following value
 
 See my own vales for example usage.
 
+Notes
+=================
+The information and error logs are called post-commit-info.log and post-commit-error.log respectively. They are created in the user's TEMP folder e.g. C:\Users\%username%\AppData\Local\Temp.
+
+When running under SVN as a post commit hook, this may (depending on your installation) be running under the NETWORK SERVICE. In which case the file will be located here C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp.
+
+You may want to periodically clear down the information log that is created by the application. It may become large over time, especially with larger teams. I have a Windows batch file that clears it down daily.
