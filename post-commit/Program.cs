@@ -6,12 +6,15 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Principal;
+using System.Threading;
 using System.Web;
+using System.Xml;
 using System.Xml.Linq;
 
 //Author: Dominic Burford 
 //Date: 20/05/2014
 
+//TODO: What about your company namespace....DomBurf.PostCommit ....
 namespace post_commit
 {
     /// <summary>
@@ -48,6 +51,8 @@ namespace post_commit
         private const string Infolog = "post-commit-info.log";
         static TextWriter _twinfo;
 
+        //I would wrap reading all these into a separate file and send back a POCO object containing all values
+        //And implement an isvalid method on it...more testable
         //values stored in config file
         private static readonly string PathToSvn = ConfigurationManager.AppSettings["pathtosvn"];
         private static readonly string BtNetHookUrl = ConfigurationManager.AppSettings["btnethookurl"];
@@ -56,6 +61,7 @@ namespace post_commit
         private static readonly string SvnrepoUrl = ConfigurationManager.AppSettings["svnrepourl"];
         private static readonly string LastSvnRevision = ConfigurationManager.AppSettings["lastsvnrevision"];
         
+        //TODO: Local to Main variables, move
         private static string _repository;
         private static string _revision;
         
@@ -96,12 +102,15 @@ namespace post_commit
         /// </remarks>
         static int  Main(string[] args)
         {
+            //TODO: You might want to think about how many return points you have here
             try
             {
+                //TODO: Spawn actual workings into a separate class
                 if (args == null) return 1;
 
                 string tempFolder = Path.GetTempPath();
 
+                //TODO: Use Path.Combine
                 _twerr = new StreamWriter(string.Concat(tempFolder, ErrorLog), true);
                 _twinfo = new StreamWriter(string.Concat(tempFolder, Infolog), true);
 
@@ -111,12 +120,15 @@ namespace post_commit
                 WriteToInfoLog("--------------------");
                 WriteToInfoLog(string.Format("Starting execution of SVN Post Commit hook program at {0}", DateTime.Now.ToString(CultureInfo.InvariantCulture)));
 
-                WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
-                if (windowsIdentity != null)
-                {
-                    string userName = windowsIdentity.Name;
-                    WriteToInfoLog(string.Format("Current user={0}", userName));
-                }
+                //TODO: Don't know if Environment.UserName gets you the same value
+                //WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
+                ////TODO: will it ever be null???
+                //if (windowsIdentity != null)
+                //{
+                //    string userName = windowsIdentity.Name;
+                //    WriteToInfoLog(string.Format("Current user={0}", userName));
+                //}
+                WriteToInfoLog("Current user={0}", Environment.UserName);
 
                 if (args.Length == 0)
                 {
@@ -146,8 +158,19 @@ namespace post_commit
 
                     if (string.IsNullOrEmpty(latestRevision)) return 4;
 
+                    //TODO: Perhaps use an XPath to get the revision attribute and config it 
+                    //more flexible if structure changes dependent upon svn version
+                    //and you've written it in the comment below anyway
                     //parse the XML for the latest revision number
                     //info/entry/commit/@revision
+
+                    //XmlDocument document = new XmlDocument();
+                    //document.LoadXml(latestRevision);
+                    //not tested though...
+                    //XmlAttribute revision = document.SelectSingleNode("//info/entry/commit/@revision") as XmlAttribute;
+                    ////extra return for consistency
+                    //if (revision == null) return 6;
+
                     XElement xRevision = XElement.Parse(latestRevision);
                     XElement xCommit = xRevision.Descendants("commit").First();
 
@@ -165,16 +188,22 @@ namespace post_commit
                 }
 
                 _repository = args[0];
-                
 
-                WriteToInfoLog(string.Format("Repository={0} revision={1}", _repository, _revision));
+                //TODO: example of new WriteToInfoLog with multiple arguments
+                WriteToInfoLog("Repository={0} revision={1}", _repository, _revision);
+                //WriteToInfoLog(string.Format("Repository={0} revision={1}", _repository, _revision));
 
+                //TODO: Interesting, you are validating that the config exists, 
+                //but the PathToSvn value which comes from config is used further up the method
+                //the readonly values will have been established 
                 //ensure we have the config values
                 string configFile = AppDomain.CurrentDomain.SetupInformation.ConfigurationFile;
                 WriteToInfoLog(string.Format("config file={0}", configFile));
 
                 if (!File.Exists(configFile)) return 7;
                 
+                //TODO:if squirrelled into a POCO then you could pass a textwriter instance into
+                //TODO: it and get it to write its own values to the textwriter instance, textable too
                 WriteToInfoLog(string.Format("PathToSvn={0}", PathToSvn));
                 WriteToInfoLog(string.Format("BtNetHookUrl={0}", BtNetHookUrl));
                 WriteToInfoLog(string.Format("BtUserName={0}", BtUserName));
@@ -182,6 +211,7 @@ namespace post_commit
                 WriteToInfoLog(string.Format("SvnrepoUrl={0}", SvnrepoUrl));
                 WriteToInfoLog(string.Format("lastsvnrevision={0}", LastSvnRevision));
 
+                //TODO: Get thre POCO to validate itself
                 if (string.IsNullOrEmpty(PathToSvn) || string.IsNullOrEmpty(BtNetHookUrl) || string.IsNullOrEmpty(BtUserName)
                     || string.IsNullOrEmpty(BtPassword) || string.IsNullOrEmpty(SvnrepoUrl)) return 8;
                 
@@ -213,7 +243,7 @@ namespace post_commit
                         };
                         p.Start();
 
-                        System.Threading.Thread.Sleep(2000);
+                        Thread.Sleep(2000);
 
                         //read the XML from standard output stream
                         string output = p.StandardOutput.ReadToEnd();
@@ -234,16 +264,19 @@ namespace post_commit
                         output = output.Replace("\r\n", string.Empty);
                         WriteToInfoLog(string.Format("XML={0}", output));
 
+                        //consider using a urlbuilder
                         //pass the XML to the BugTracket.NET hook URL
                         string urlParams = string.Format("?svn_log={0}&repo={1}&username={2}&password={3}", HttpUtility.UrlDecode(output), SvnrepoUrl, BtUserName, BtPassword);
+
 
                         using (WebClient client = new WebClient())
                         {
                             string hookUrl = string.Concat(BtNetHookUrl, urlParams);
                             WriteToInfoLog(string.Format("BugTracker.NET hook URL={0}", hookUrl));
+                            //consider using client.OpenRead/client.querystring etc....again not tested!
                             string html = client.DownloadString(hookUrl);
                             WriteToInfoLog(html);
-                            System.Threading.Thread.Sleep(5000);
+                            Thread.Sleep(5000);
                         }
                     }
                 }
@@ -269,6 +302,7 @@ namespace post_commit
 
         static void CatchException(Exception ex)
         {
+            //Could it ever be null?
             if (ex == null) return;
             WriteToErrorLog(ex);
         }
@@ -280,20 +314,26 @@ namespace post_commit
             _twerr.WriteLine(ex.StackTrace);
         }
 
-        static void WriteToInfoLog(string message)
+        static void WriteToInfoLog(string format)
         {
-            if (!string.IsNullOrEmpty(message))
-            {
-                _twinfo.WriteLine(message);
-            }
+            WriteToInfoLog(format, null);
         }
 
+        //perhaps more flexible
+        static void WriteToInfoLog(string format, params object[] args)
+        {
+            _twinfo.WriteLine(format, args);
+        }
+
+        //I would squirrel the reading of values and updating into a separate class
         static void UpdateConfigFile(string key, string value)
         {
             Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             config.AppSettings.Settings.Remove(key);
             config.AppSettings.Settings.Add(key, value);
             config.Save(ConfigurationSaveMode.Minimal);
+            //you might want to refresh the appsettings
+            //ConfigurationManager.RefreshSection("appSettings");
         }
     }
 }
