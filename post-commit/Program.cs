@@ -89,12 +89,9 @@ namespace post_commit
 
                 string tempFolder = Path.GetTempPath();
 
-                //_twerr = new StreamWriter(Path.Combine(tempFolder, ErrorLog), true);
-                //_twinfo = new StreamWriter(Path.Combine(tempFolder, Infolog), true);
-
-                _twerr = new StreamWriter(string.Concat(tempFolder, ErrorLog), true);
-                _twinfo = new StreamWriter(string.Concat(tempFolder, Infolog), true);
-
+                _twerr = new StreamWriter(Path.Combine(tempFolder, ErrorLog), true);
+                _twinfo = new StreamWriter(Path.Combine(tempFolder, Infolog), true);
+                
                 if (_twerr == null || _twinfo == null) return 2;
 
                 WriteToInfoLog("");
