@@ -236,8 +236,8 @@ namespace post_commit
                         {
                             string hookUrl = string.Concat(btNetHookUrl, urlParams);
                             WriteToInfoLog(string.Format("BugTracker.NET hook URL={0}", hookUrl));
-                            //string html = client.DownloadString(hookUrl);
-                            //WriteToInfoLog(html);
+                            string html = client.DownloadString(hookUrl);
+                            WriteToInfoLog(html);
                             System.Threading.Thread.Sleep(5000);
                         }
                     }
