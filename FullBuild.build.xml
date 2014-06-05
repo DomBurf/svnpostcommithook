@@ -1,0 +1,238 @@
+﻿<?xml version="1.0"?>
+<project name="Build" xmlns="http://nant.sf.net/schemas/nant.xsd">
+  <property name="build.dir" 			      value="${directory::get-current-directory()}" />
+  <property name="tools.dir" 			      value="${environment::get-variable('BUILD_TOOLS')}" />
+  <property name="nunit.dir" 			      value="${tools.dir}\nunit" />
+  <property name="nantcontrib.dir" 			value="${tools.dir}\nantcontrib" />
+  <property name="nantcontrib.file"			value="${nantcontrib.dir}\NAnt.Contrib.Tasks.dll" />
+  
+  <property name="svn.file"             value="${tools.dir}\\subversion\bin\svn.exe" />
+  
+  <property name="project.dir"            value="post-commit" />
+  <property name="solution.name"          value="post-commit.sln" />
+  <property name="application.name"       value="SVN Post Commit Hook Application" />
+  <property name="built.release.version.file" value="post-commit.exe" />
+  
+  <property name="release.dir"          value="${build.dir}\${project.dir}\bin\Release" />
+  <property name="built.release.dir"    value="\\subversion\releases\DECRI\SVNPostCommitHook" />
+  
+  <!--These values are set by the build script-->
+  <property name="svn.latest.revision.number"     value="0" overwrite="true"/>
+  <property name="built.release.version.dir"      value="" overwrite="true" />
+  <!--TODO read these values from the assembly version info-->
+  <property name="version.number"                 value="" overwrite="true" />
+  
+  <!--This value will need to be changed for different branches!-->
+  <property name="svn.repository.path"            value="https://subversion:444/svn/DECRI_updated/branches/DECRI_newwork/" />
+
+  <property name="verbose"			      	value="false" overwrite="false" />
+  <property name="config.type"		      value="Debug" />
+
+  <property name="nant.onfailure" 			value="Failure"/>
+  <property name="nant.onsuccess" 			value="Success"/>
+  
+  <!-- Tell Nant what the current framework version to use is -->
+  <property name="nant.settings.currentframework" value="net-4.0" />
+
+  <tstamp verbose="${verbose}">
+    <formatter property="year" pattern="yyyy" />
+  </tstamp>
+
+  <target name="OutputSystemInformation">
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+    
+    <echo message="Application Name: ${application.name}" />
+    <echo message="Machine name: ${environment::get-machine-name()}" />
+    <echo message="Operating System: ${environment::get-operating-system()}" />
+    <echo message="Username: ${environment::get-user-name()}" />
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+  
+  <target name="ValidateTools">
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <call target="OutputSystemInformation" />
+    
+    <fail if="${not file::exists(nantcontrib.file)}" 	message="${nantcontrib.file} does not exist" />
+    <loadtasks assembly="${nantcontrib.file}" failonerror="true" verbose="${verbose}" />
+    <fail if="${not file::exists(svn.file)}" 	message="${svn.file} does not exist" />
+    
+    <echo message="All Build tools appear to be present" />
+    
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="Clean" depends="ValidateTools">
+    <!-- Clean up the build folder prior to starting -->
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <delete dir="${build.dir}${project.dir}\obj" failonerror="true" />
+    <delete dir="${build.dir}\${project.dir}\bin" failonerror="true" />
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+ <target name="Build" depends="Clean">
+    <!-- Build the application -->
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+   <call target="GetLatestVersionNumber" />
+   <call target="GetLatestRevisionNumber" />
+
+   <echo message="Latest version number ${version.number}" />
+   <echo message="Latest SVN revision number ${svn.latest.revision.number}" />
+
+   <!-- Actually build the solution - Clean mode -->
+   <property name="build.item" value="${build.dir}\${solution.name}" />
+   <property name="config.type"		value="Debug" />
+   <property name="target" 			    value="clean" />
+   <msbuild project="${build.item}" target="${target}" verbose="${verbose}" failonerror="true">
+     <property name="Configuration" value="${config.type}" verbose="${verbose}" />
+   </msbuild>
+   
+    <!-- Actually build the solution - Debug mode -->
+    <property name="build.item" value="${build.dir}\${solution.name}" />
+    <property name="config.type"		value="Debug" />
+    <property name="target" 			    value="rebuild" />
+    <msbuild project="${build.item}" target="${target}" verbose="${verbose}" failonerror="true">
+      <property name="Configuration" value="${config.type}" verbose="${verbose}" />
+    </msbuild>
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="Release" depends="Build">
+    <!-- Build the application in Release mode -->
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <!-- Actually build the solution -->
+    <property name="build.item" value="${build.dir}\${solution.name}" />
+    <property name="config.type"		value="Release" />
+    <property name="target" 			    value="rebuild" />
+    <msbuild project="${build.item}" target="${target}" verbose="${verbose}" failonerror="true">
+      <property name="Configuration" value="${config.type}" verbose="${verbose}" />
+    </msbuild>
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="FinaliseBuild" depends="Release">
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <call target="CopyToReleaseFolder" />
+    <call target="ZipSource" />
+    
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <!--!!! These functions are helper functions for the build !!!-->
+  <target name="CopyToReleaseFolder">
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <!--Create a new release version folder if one does not already exist-->
+    <property name="built.release.version.dir" value="${built.release.dir}\Version${version.number}\Release${svn.latest.revision.number}" />
+    
+    <mkdir dir="${built.release.version.dir}"
+               if="${not directory::exists(built.release.version.dir)}"
+               failonerror="true"
+               verbose="${verbose}" />
+
+    <echo message="Source file ${release.dir}\${built.release.version.file}" />
+    <echo message="Target file ${built.release.version.dir}\${built.release.version.file}" />
+
+    <copy file="${release.dir}\${built.release.version.file}" tofile="${built.release.version.dir}\${built.release.version.file}" failonerror="true" verbose="${verbose}" />
+    <copy file="${release.dir}\post-commit.exe.config" tofile="${built.release.version.dir}\post-commit.exe.config" failonerror="true" verbose="${verbose}" />
+    <copy file="${release.dir}\app.config" tofile="${built.release.version.dir}\app.config" failonerror="true" verbose="${verbose}" />
+    
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="GetLatestVersionNumber">
+    <!--Get the latest version number from the AndroidManifest.xml file and use this as the major version number-->
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <property name="version.number" value="1.0" overwrite="true" />
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="GetLatestRevisionNumber">
+    <!--Get the latest SVN revision and use this as the minor version number-->
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+    
+    <exec program="${svn.file}" failonerror="true" verbose="${verbose}"
+        commandline='info "${svn.repository.path}" --xml'
+        output="svninfo.xml" />
+    <xmlpeek failonerror="true" verbose="${verbose}"
+        file="svninfo.xml"
+        xpath="/info/entry/commit/@revision"
+        property="svn.latest.revision.number"/>
+    <delete file="svninfo.xml" failonerror="true" verbose="${verbose}" />
+    
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="ZipSource">
+    <!-- Zips the source copy prior to any manufacturing process has been applied -->
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <property name="source.zip.dir" value="${build.dir}\Source" />
+    <property name="source.zip.file" value="${source.zip.dir}\Source.zip" />
+    <!-- Remove source.zip if it exists -->
+    <delete file="${source.zip.file}"
+            if="${file::exists(source.zip.file)}"
+            failonerror="true"
+            verbose="${verbose}" />
+
+    <zip zipfile="${source.zip.file}"
+      ziplevel="9"
+      failonerror="true"
+      verbose="${verbose}" >
+      <fileset>
+        <include name="${build.dir}\**/*.*" />
+        <exclude name="${build.dir}\**/bin/**/*.*" />
+        <exclude name="${build.dir}\**/obj/**/*.*" />
+        <exclude name="${build.dir}\**/*.log" />
+      </fileset>
+    </zip>
+
+    <!--Copy the source zip to the releases folder so we can audit exactly what files went into the creation of the APK file-->
+    <copy file="${source.zip.file}" tofile="${built.release.version.dir}\Source.zip" failonerror="true" verbose="${verbose}" />
+    
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+  
+  <target name="Failure">
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <echo message="Build failure, please check log for details" />
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+
+  <target name="Success">
+    <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
+
+    <echo message="Successful build"/>
+
+    <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
+  </target>
+  
+ <!-- C# utility function -->
+  <script language="C#">
+    <code>
+      <![CDATA[
+			public static string ToString(DateTime value, string format)
+			{
+				return value.ToString(format);
+			}
+			[Function("format-to-string")]
+			public static string ToString(DateTime value)
+			{
+				return ToString(value, "dd/MM/yyyy HH:mm:ss");
+			}
+		]]>
+    </code>
+  </script>
+</project>
