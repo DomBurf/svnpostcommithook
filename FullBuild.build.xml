@@ -10,17 +10,21 @@
   
   <property name="project.dir"            value="post-commit" />
   <property name="solution.name"          value="post-commit.sln" />
-  <property name="application.name"       value="SVN Post Commit Hook Application" />
+  <property name="application.name"       value="SVN Post Commit Hook Application for BugTracker.NET" />
   <property name="built.release.version.file" value="post-commit.exe" />
   
   <property name="release.dir"          value="${build.dir}\${project.dir}\bin\Release" />
   <property name="built.release.dir"    value="\\subversion\releases\DECRI\SVNPostCommitHook" />
   
+  <!--We specify the assembly information here as we create the assemblyinfo.cs file here-->
+  <property name="version.number"       value="1.0" />
+  <property name="company.name" 		    value="Equita" />
+  <property name="copyright.notice" 	  value="Copyright © Equita" />
+  <property name="assemblyinfo.file"    value="${build.dir}\${project.dir}\Properties\assemblyinfo.cs" />
+  
   <!--These values are set by the build script-->
   <property name="svn.latest.revision.number"     value="0" overwrite="true"/>
   <property name="built.release.version.dir"      value="" overwrite="true" />
-  <!--TODO read these values from the assembly version info-->
-  <property name="version.number"                 value="" overwrite="true" />
   
   <!--This value will need to be changed for different branches!-->
   <property name="svn.repository.path"            value="https://subversion:444/svn/DECRI_updated/branches/DECRI_newwork/" />
@@ -77,8 +81,8 @@
     <!-- Build the application -->
     <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
 
-   <call target="GetLatestVersionNumber" />
    <call target="GetLatestRevisionNumber" />
+   <call target="UpdateAssemblyInfo" />
 
    <echo message="Latest version number ${version.number}" />
    <echo message="Latest SVN revision number ${svn.latest.revision.number}" />
@@ -117,7 +121,7 @@
     <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
   </target>
 
-  <target name="FinaliseBuild" depends="Release">
+  <target name="FinaliseBuild" depends="Release ">
     <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
 
     <call target="CopyToReleaseFolder" />
@@ -138,9 +142,6 @@
                failonerror="true"
                verbose="${verbose}" />
 
-    <echo message="Source file ${release.dir}\${built.release.version.file}" />
-    <echo message="Target file ${built.release.version.dir}\${built.release.version.file}" />
-
     <copy file="${release.dir}\${built.release.version.file}" tofile="${built.release.version.dir}\${built.release.version.file}" failonerror="true" verbose="${verbose}" />
     <copy file="${release.dir}\post-commit.exe.config" tofile="${built.release.version.dir}\post-commit.exe.config" failonerror="true" verbose="${verbose}" />
     <copy file="${release.dir}\app.config" tofile="${built.release.version.dir}\app.config" failonerror="true" verbose="${verbose}" />
@@ -148,15 +149,32 @@
     <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
   </target>
 
-  <target name="GetLatestVersionNumber">
-    <!--Get the latest version number from the AndroidManifest.xml file and use this as the major version number-->
+  <target name="UpdateAssemblyInfo" depends="GetLatestRevisionNumber" >
+    <!-- Brands the assemblyInfo.cs file with version number etc -->
     <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
-
-    <property name="version.number" value="1.0" overwrite="true" />
-
+    
+      <asminfo output="${assemblyinfo.file}"
+               language="CSharp"
+               failonerror="true"
+               verbose="${verbose}">
+        <imports>
+          <import namespace="System" />
+          <import namespace="System.Reflection" />
+          <import namespace="System.Runtime.InteropServices" />
+        </imports>
+        <attributes>
+          <attribute type="AssemblyVersionAttribute" 			    value="${version.number}" />
+          <attribute type="AssemblyFileVersionAttribute" 		  value="${version.number}.${svn.latest.revision.number}" />
+          <attribute type="AssemblyCompanyAttribute" 			    value="${company.name}" />
+          <attribute type="AssemblyCopyrightAttribute" 		    value="${copyright.notice} ${year}" />
+          <attribute type="AssemblyConfigurationAttribute" 	  value="RELEASE" />
+          <attribute type="AssemblyDescriptionAttribute"      value="${application.name}" />
+        </attributes>
+      </asminfo>
+    
     <echo message="Task execution finished at : ${script::format-to-string(datetime::now())}" />
   </target>
-
+  
   <target name="GetLatestRevisionNumber">
     <!--Get the latest SVN revision and use this as the minor version number-->
     <echo message="Task execution started at : ${script::format-to-string(datetime::now())}" />
