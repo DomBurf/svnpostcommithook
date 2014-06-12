@@ -63,8 +63,6 @@ namespace post_commit
         /// 5 = config values not set
         /// 6 = no XML returned from SVN for latest revision
         /// 7 = could not load XML 'revision' attribute for 'commit' XML node
-        /// 8 = No XML was returned from SVN for the specified revision
-        /// 9 = No BugTracker.NET information was found in the XML returned from SVN
         /// </returns>
         /// <remarks>
         /// Before prodceeding you will need to populate the config file with certain values:
@@ -79,7 +77,11 @@ namespace post_commit
         /// When running under SVN in a live production this may (depending on your installation) be running under the NETWORK SERVICE.
         /// In which case the file will be located here C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp.
         /// 
-        /// Debugging / diagnostics information is written to a file called post-commit-info.log. See the comment above for its location
+        /// Debugging / diagnostics information is written to a file called post-commit-info.log. See the comment above for its location.
+        /// 
+        /// The only time I have got this to fail is when processing a large SVN commit when there has been a large number of files
+        /// and / or a verbose check-in comment leading to the querystring that is passed to BugTracker.NET to exceed its limits
+        /// leading to an HTTP 404 error.
         /// </remarks>
         static int  Main(string[] args)
         {
@@ -214,20 +216,20 @@ namespace post_commit
                         if (string.IsNullOrEmpty(output))
                         {
                             WriteToInfoLog("No XML was returned from SVN");
-                            return 8;
+                            continue;
                         }
                         
                         if (!output.Contains("bugid"))
                         {
                             WriteToInfoLog("No BugTracker.NET information was found - nothing more to do");
-                            return 9;
+                            continue;
                         }
 
                         output = output.Replace("\r\n", string.Empty);
                         WriteToInfoLog(string.Format("XML={0}", output));
 
                         //pass the XML to the BugTracket.NET hook URL
-                        string urlParams = string.Format("?svn_log={0}&repo={1}&username={2}&password={3}", HttpUtility.UrlDecode(output), svnrepoUrl, btUserName, btPassword);
+                        string urlParams = string.Format("?svn_log={0}&repo={1}&username={2}&password={3}", HttpUtility.UrlEncode(output), svnrepoUrl, btUserName, btPassword);
 
                         using (WebClient client = new WebClient())
                         {
